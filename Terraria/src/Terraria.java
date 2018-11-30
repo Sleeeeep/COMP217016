@@ -138,7 +138,536 @@ public class Terraria extends JFrame implements KeyListener, Runnable
 		}
 	}
 	
+	public class Ghost
+	{
+		public Point Pos = new Point(0, 0);
+
+		int dir = 0;			// 1 위, 2 아래, 3 좌, 4 우
+
+		public boolean GoUp = false;
+		public boolean GoDown = false;
+		public boolean GoLeft = false;
+		public boolean GoRight = false;
+		
+		public boolean CanUp = false;
+		public boolean CanDown = false;
+		public boolean CanLeft = false;
+		public boolean CanRight = false;
+		
+		public Ghost(int x, int y)
+		{
+			Pos.x = x;
+			Pos.y = y;
+		}
+		
+		public void movecheck()
+		{
+			int i;
+
+			for(i=Pos.y; i<Pos.y+30; i++)			// 왼쪽 체크
+			{
+				if(checked[i][(2*Pos.x+30)/2 - 16] != 3)			
+					CanLeft = true;
+				else
+				{
+					CanLeft = false;
+					break;
+				}
+			}
+		
+			for(i=Pos.y; i<Pos.y+30; i++)			// 오른쪽 체크
+			{
+				if(checked[i][(2*Pos.x+30)/2 + 15] != 3)	
+					CanRight = true;
+				else
+				{
+					CanRight = false;
+					break;
+				}
+			}
+			
+			for(i=Pos.x; i<Pos.x+30; i++)			// 위쪽 체크
+			{
+				if(checked[(2*Pos.y+30)/2 - 16][i] != 3)
+					CanUp = true;
+				else
+				{
+					CanUp = false;
+					break;
+				}
+			}
+			for(i=Pos.x; i<Pos.x+30; i++)			// 아래쪽 체크
+			{
+				if(checked[(2*Pos.y+30)/2 + 15][i] != 3)	
+					CanDown = true;
+				else
+				{
+					CanDown = false;
+					break;
+				}
+			}
+		
+		}		
+		public void randDir()
+		{
+			int[] state = new int[4]; // 0 못감, 1 갈수있음, 2 가고있는중
+										// [0] 위, [1] 아래, [2] 좌, [3] 우
+			int temp;
+			
+			for(int i=0; i<4; i++)
+				state[i] = 0;
+			
+			if(GoUp)
+				state[0] = 2;
+			if(GoDown)
+				state[1] = 2;
+			if(GoLeft)
+				state[2] = 2;
+			if(GoLeft)
+				state[3] = 2;
+			
+			if(CanUp)
+				state[0] = 1;
+			if(CanDown)
+				state[1] = 1;
+			if(CanLeft)
+				state[2] = 1;
+			if(CanRight)
+				state[3] = 1;
+			
+			do
+			{
+				temp = rand.nextInt(4);
+				
+			}while(state[temp] != 1);
+			
+			dir = temp+1;
+			
+			switch(dir)
+			{
+			case 1:
+				GoUp = true;
+				break;
+			case 2:
+				GoDown = true;
+				break;
+			case 3:
+				GoLeft = true;
+				break;
+			case 4:
+				GoRight = true;
+				break;
+			}
+ 		}
+		public void crush()
+		{
+			int gapX, gapY;
+			
+			/** p1 */
+			gapX = p1.Pos.x - Pos.x;
+			gapY = p1.Pos.y - Pos.y;
+			
+			if((gapX < 15 && gapX > -15) && (gapY < 15 && gapY > -15))
+			{
+				if(!p1.touched)
+				{
+					p1.touchtime = System.currentTimeMillis();
+					p1.touched = true;
+				}
+			}
+			
+			/** p2 */
+			gapX = p2.Pos.x - Pos.x;
+			gapY = p2.Pos.y - Pos.y;
+			
+			if((gapX < 15 && gapX > -15) && (gapY < 15 && gapY > -15))
+			{
+				if(!p2.touched)
+				{
+					p2.touchtime = System.currentTimeMillis();
+					p2.touched = true;
+				}
+			}
+			
+		}
+		public void move()
+		{
+			if(!gamestart)
+				return ;
+
+			movecheck();
+			
+			if(!GoUp && !GoDown && !GoLeft && !GoRight)
+				randDir();
+			
+			if(GoUp)
+			{
+				if(CanUp)
+					Pos.y -= 5;
+				else
+				{
+					randDir();
+					GoUp = false;
+				}
+			}
+			if(GoDown)
+			{
+				if(CanDown)
+					Pos.y += 5;
+				else
+				{
+					randDir();
+					GoDown = false;
+				}
+			}
+			if(GoLeft)
+			{
+				if(CanLeft)
+				{
+					Pos.x -= 5;
+					outOfMap(Pos);
+				}
+				else
+				{
+					randDir();
+					GoLeft = false;
+				}
+			}
+			if(GoRight)
+			{
+				if(CanRight)
+				{
+					Pos.x += 5;
+					outOfMap(Pos);
+				}
+				else
+				{
+					randDir();
+					GoRight = false;
+				}
+			}
+			crush();
+		}
+	}
 	
+	public class Player
+	{
+		Point Pos = new Point(0, 0);
+		int tile = 0;		// 4 red 5 blue
+		String color = null;
+		int territory = 1;
+		public long touchtime;
+		public boolean touched = false;
+		
+		public boolean KeyUp = false;
+		public boolean KeyDown = false;
+		public boolean KeyLeft = false;
+		public boolean KeyRight = false;
+		
+		public boolean CanUp = false;
+		public boolean CanDown = false;
+		public boolean CanLeft = false;
+		public boolean CanRight = false;
+		
+		public Player(int x, int y, String color)
+		{
+			Pos.x = x;
+			Pos.y = y;
+			this.color = color;
+			
+			if(color == "red.png")
+				tile = 4;
+			else if(color == "blue.png")
+				tile = 5;
+		}
+		
+		public void setKeyUp(boolean state)
+		{	
+			KeyUp = state; 
+		}
+		public void setKeyDown(boolean state)
+		{	
+			KeyDown = state; 
+		}
+		public void setKeyLeft(boolean state)
+		{	
+			KeyLeft = state; 
+		}
+		public void setKeyRight(boolean state)
+		{	
+			KeyRight = state; 
+		}
+		
+		public void movecheck()
+		{
+			int i;
+
+			for(i=Pos.y; i<Pos.y+30; i++)			// 왼쪽 체크
+			{
+				if(checked[i][(2*Pos.x+30)/2 - 16] != 3)			
+					CanLeft = true;
+				else
+				{
+					CanLeft = false;
+					break;
+				}
+			}
+		
+			for(i=Pos.y; i<Pos.y+30; i++)			// 오른쪽 체크
+			{
+				if(checked[i][(2*Pos.x+30)/2 + 15] != 3)	
+					CanRight = true;
+				else
+				{
+					CanRight = false;
+					break;
+				}
+			}
+			
+			for(i=Pos.x; i<Pos.x+30; i++)			// 위쪽 체크
+			{
+				if(checked[(2*Pos.y+30)/2 - 16][i] != 3)
+					CanUp = true;
+				else
+				{
+					CanUp = false;
+					break;
+				}
+			}
+			for(i=Pos.x; i<Pos.x+30; i++)			// 아래쪽 체크
+			{
+				if(checked[(2*Pos.y+30)/2 + 15][i] != 3)	
+					CanDown = true;
+				else
+				{
+					CanDown = false;
+					break;
+				}
+			}
+		
+		}			
+		public void move()
+		{
+			if(!gamestart)
+				return ;
+			
+			if (KeyUp && CanUp)
+				Pos.y -= 5;
+			if (KeyDown && CanDown)
+				Pos.y += 5;
+			if (KeyLeft && CanLeft)
+			{
+				Pos.x -= 5;
+				outOfMap(Pos);
+			}
+			if (KeyRight && CanRight)
+			{
+				Pos.x += 5;
+				outOfMap(Pos);
+			}
+		}
+		
+		public void occupy()
+		{
+			if(!gamestart)
+				return ;
+			if((Pos.x%30 == 25) || (Pos.y%30 == 16))			// 반틈될때만 작동
+				coloring();
+		}
+		public void coloring()
+		{
+			int direction = 0;
+			int firstX, lastX, firstY, lastY;
+			int tempX, tempY;
+			
+			direction = checkBlock();
+			
+			switch(direction)
+			{
+			case 1:			// 위로갈때
+				firstX = Pos.x;
+				lastX = firstX + 30;
+				lastY = Pos.y + 15;
+				firstY = lastY - 30;
+				
+				for(tempY = firstY; tempY<lastY; tempY++)
+				{
+					for(tempX = firstX; tempX<lastX; tempX++)
+					{
+						checked[tempY][tempX] = tile;
+					}
+				}
+				territory++;
+				break;
+				
+			case 2:			// 아래로갈때
+				firstX = Pos.x;
+				lastX = firstX + 30;
+				firstY = Pos.y + 15;
+				lastY = firstY + 30;
+				
+				for(tempY = firstY; tempY<lastY; tempY++)
+				{
+					for(tempX = firstX; tempX<lastX; tempX++)
+					{
+						checked[tempY][tempX] = tile;
+					}
+				}
+				territory++;
+				break;
+				
+			case 3:			// 왼쪽으로갈때
+				lastX = Pos.x + 15;
+				firstX = lastX -30;
+				firstY = Pos.y;
+				lastY = firstY + 30;
+				
+				for(tempY = firstY; tempY<lastY; tempY++)
+				{
+					for(tempX = firstX; tempX<lastX; tempX++)
+					{
+						checked[tempY][tempX] = tile;
+					}
+				}
+				territory++;
+				break;
+				
+			case 4:			// 오른쪽으로 갈때
+				firstX = Pos.x + 15;
+				lastX = firstX + 30;
+				firstY = Pos.y;
+				lastY = firstY + 30;
+				
+				for(tempY = firstY; tempY<lastY; tempY++)
+				{
+					for(tempX = firstX; tempX<lastX; tempX++)
+					{
+						checked[tempY][tempX] = tile;
+					}
+				}
+				territory++;
+				break;
+			
+			default :
+				break;		
+			}		
+		}
+		public int checkBlock()
+		{
+			int sort = 0;			// 0은 오류, 1은 up, 2는 down, 3은 left, 4는 right 체크
+			
+			int firstX, lastX, firstY, lastY;
+			int tempX, tempY;
+			
+			/** 위로 가는건지 체크*/
+			firstX = Pos.x;
+			lastX = firstX + 30;
+			lastY = Pos.y +  15;
+			firstY = lastY - 30;
+			
+			for(tempY = firstY; tempY<lastY; tempY++)
+			{
+				for(tempX = firstX; tempX<lastX; tempX++)
+				{
+					if(checked[tempY][tempX] == 1)
+						sort = 1;
+					else
+					{
+						sort = 0;
+						break;
+					}					
+				}
+			}
+			if(sort == 1)
+				return sort;
+			
+			/** 아래로 가는건지 체크*/
+			firstX = Pos.x;
+			lastX = firstX + 30;
+			firstY = Pos.y + 15;
+			lastY = firstY + 30;
+			
+			for(tempY = firstY; tempY<lastY; tempY++)
+			{
+				for(tempX = firstX; tempX<lastX; tempX++)
+				{
+					if(checked[tempY][tempX] == 1)
+						sort = 2;
+					else
+					{
+						sort = 0;
+						break;
+					}				
+				}
+			}
+			if(sort == 2)
+				return sort;
+			
+			/** 왼쪽으로 가는건지 체크*/
+			lastX = Pos.x + 15;
+			firstX = lastX -30;
+			firstY = Pos.y;
+			lastY = firstY + 30;
+			
+			for(tempY = firstY; tempY<lastY; tempY++)
+			{
+				for(tempX = firstX; tempX<lastX; tempX++)
+				{
+					if(checked[tempY][tempX] == 1)
+						sort = 3;
+					else
+					{
+						sort = 0;
+						break;
+					}			
+				}
+			}
+
+			if(sort == 3)
+				return sort;
+			
+			/** 오른쪽으로 가는건지 체크*/
+			firstX = Pos.x + 15;
+			lastX = firstX + 30;
+			firstY = Pos.y;
+			lastY = firstY + 30;
+			
+			for(tempY = firstY; tempY<lastY; tempY++)
+			{
+				for(tempX = firstX; tempX<lastX; tempX++)
+				{
+					if(checked[tempY][tempX] == 1)
+						sort = 4;
+					else
+					{
+						sort = 0;
+						break;
+					}		
+				}
+			}
+			if(sort == 4)
+				return sort;
+			
+			return sort;
+		}
+	
+		public void checkTime()
+		{
+			if(System.currentTimeMillis() - touchtime >= 2000)
+				touched = false;
+		}
+		public void Do()
+		{
+			if(!touched)
+			{
+				movecheck();
+				move();
+				occupy();
+			}
+			else
+				checkTime();
+		}
+	}
 	
 	public void keyPressed(KeyEvent e)
 	{
